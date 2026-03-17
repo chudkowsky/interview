@@ -343,26 +343,221 @@ HTML = f"""<!DOCTYPE html>
   #content tr:hover td {{ background: var(--code-bg); }}
   #content hr {{ border: none; border-top: 1px solid var(--border); margin: 2em 0; }}
 
-  /* ── Questions mode: hide answers by default ── */
-  #content.questions-mode .answer {{ display: none; }}
-  #content.questions-mode .question-block {{
+  /* ── Flip cards (questions mode) ── */
+  .flip-card {{
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px 20px;
-    margin-bottom: 12px;
+    border-radius: 10px;
+    margin-bottom: 14px;
     cursor: pointer;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
+    transform-origin: center;
   }}
-  #content.questions-mode .question-block:hover {{ border-color: var(--accent); }}
-  #content.questions-mode .question-block.revealed .answer {{ display: block; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }}
-  #content.questions-mode .question-block .reveal-hint {{
+  .flip-card:hover {{ border-color: var(--accent); box-shadow: 0 2px 12px var(--shadow); }}
+  .flip-face {{ padding: 18px 22px; border-radius: 9px; }}
+  .flip-front {{ background: var(--bg); }}
+  .flip-back {{
+    background: var(--code-bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 9px 9px 0;
+    display: none;
+  }}
+  .flip-card.flipped .flip-front {{ display: none; }}
+  .flip-card.flipped .flip-back {{ display: block; }}
+  .face-badge {{
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    font-family: -apple-system, sans-serif;
+    margin-bottom: 8px;
+    border: 1px solid var(--accent);
+    padding: 1px 7px;
+    border-radius: 3px;
+  }}
+  .flip-back .face-badge {{ opacity: 0.7; }}
+  .flip-hint {{
+    display: block;
     font-size: 11px;
     color: var(--accent);
     font-family: -apple-system, sans-serif;
-    margin-top: 6px;
+    margin-top: 10px;
     letter-spacing: 0.05em;
+    opacity: 0.55;
   }}
-  #content.questions-mode .question-block.revealed .reveal-hint {{ display: none; }}
+  .flip-card.animating {{ pointer-events: none; }}
+  #q-controls {{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 22px;
+    align-items: center;
+  }}
+  #q-counter {{
+    font-size: 12px;
+    color: var(--text);
+    font-family: -apple-system, sans-serif;
+    margin-left: auto;
+    opacity: 0.55;
+  }}
+
+  /* ── Card state indicators ── */
+  .flip-card.state-known {{ border-color: #22c55e; }}
+  .flip-card.state-known .flip-front {{ border-left: 3px solid #22c55e; border-radius: 0 9px 9px 0; }}
+  .flip-card.state-review {{ border-color: #f59e0b; }}
+  .flip-card.state-review .flip-front {{ border-left: 3px solid #f59e0b; border-radius: 0 9px 9px 0; }}
+  .state-dot {{
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+    background: var(--border);
+    transition: background 0.2s;
+  }}
+  .state-known .state-dot {{ background: #22c55e; }}
+  .state-review .state-dot {{ background: #f59e0b; }}
+  .card-status-btns {{ display: flex; gap: 8px; margin-top: 14px; }}
+  .btn-status {{
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    transition: all 0.15s;
+    font-weight: 600;
+  }}
+  .btn-known {{ border-color: #22c55e; color: #22c55e; }}
+  .btn-known:hover, .flip-card.state-known .btn-known {{ background: #22c55e; color: #fff; }}
+  .btn-again {{ border-color: #f59e0b; color: #f59e0b; }}
+  .btn-again:hover, .flip-card.state-review .btn-again {{ background: #f59e0b; color: #fff; }}
+
+  /* ── Progress bar ── */
+  #progress-wrap {{ padding: 10px 48px 0; display: none; }}
+  #progress-wrap.visible {{ display: block; }}
+  #progress-bar-outer {{
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }}
+  #progress-bar-inner {{
+    height: 100%;
+    background: #22c55e;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }}
+  #progress-text {{
+    font-size: 11px;
+    color: var(--text);
+    font-family: -apple-system, sans-serif;
+    opacity: 0.55;
+  }}
+
+  /* ── Profile button ── */
+  #profile-btn {{
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text);
+    font-family: -apple-system, sans-serif;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }}
+  #profile-btn:hover {{ background: var(--border); }}
+  #profile-name-display {{ max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+
+  /* ── Profile modal ── */
+  #profile-modal {{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }}
+  #profile-modal.hidden {{ display: none; }}
+  #profile-modal-box {{
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    max-width: 360px;
+    width: 90%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+  }}
+  #profile-modal-box h2 {{ font-size: 1.1em; color: var(--heading); margin-bottom: 8px; font-family: -apple-system, sans-serif; }}
+  #profile-modal-box > p {{ font-size: 13px; color: var(--text); opacity: 0.7; margin-bottom: 18px; line-height: 1.5; font-family: -apple-system, sans-serif; }}
+  #profile-input {{
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 12px;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, sans-serif;
+    margin-bottom: 10px;
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+  }}
+  #profile-input:focus {{ border-color: var(--accent); }}
+  #profile-submit {{
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: -apple-system, sans-serif;
+    transition: opacity 0.15s;
+  }}
+  #profile-submit:hover {{ opacity: 0.85; }}
+  #profile-list {{ margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; display: none; }}
+  #profile-list-label {{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.4; font-family: -apple-system, sans-serif; margin-bottom: 6px; }}
+  .profile-item {{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    transition: background 0.1s;
+  }}
+  .profile-item:hover {{ background: var(--code-bg); }}
+  .profile-item.active {{ color: var(--accent); font-weight: 600; }}
+  .profile-delete {{
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text);
+    opacity: 0.25;
+    font-size: 13px;
+    padding: 2px 6px;
+    transition: opacity 0.15s;
+    border-radius: 4px;
+  }}
+  .profile-delete:hover {{ opacity: 1; background: var(--border); }}
 
   /* ── Nav footer ── */
   #nav-footer {{
@@ -430,10 +625,26 @@ HTML = f"""<!DOCTYPE html>
     #nav-footer {{ padding: 12px 16px 32px; }}
     .nav-btn {{ max-width: 48%; padding: 10px 12px; font-size: 12px; }}
     #hamburger {{ display: flex; align-items: center; justify-content: center; }}
+    #progress-wrap {{ padding: 8px 16px 0; }}
+    #profile-name-display {{ display: none; }}
   }}
 </style>
 </head>
 <body>
+
+<div id="profile-modal" class="hidden" onclick="if(event.target===this)closeProfileModal()">
+  <div id="profile-modal-box">
+    <h2>Who&#8217;s studying?</h2>
+    <p>Enter your name to keep your progress separate from others.</p>
+    <input type="text" id="profile-input" placeholder="Your name" maxlength="30" autocomplete="off"
+           onkeydown="if(event.key==='Enter')submitProfile()">
+    <button id="profile-submit" onclick="submitProfile()">Start studying</button>
+    <div id="profile-list">
+      <div id="profile-list-label">Switch profile</div>
+      <div id="profile-items"></div>
+    </div>
+  </div>
+</div>
 
 <div id="overlay" onclick="closeSidebar()"></div>
 
@@ -451,6 +662,9 @@ HTML = f"""<!DOCTYPE html>
     <button id="hamburger" onclick="toggleSidebar()">&#9776;</button>
     <div id="chapter-title-bar"></div>
     <div id="controls">
+      <button id="profile-btn" onclick="showProfileModal(false)">
+        &#128100; <span id="profile-name-display">Profile</span>
+      </button>
       <button class="btn" onclick="changeFont(-1)">A&#8722;</button>
       <span id="font-size-display">18</span>
       <button class="btn" onclick="changeFont(1)">A+</button>
@@ -461,6 +675,11 @@ HTML = f"""<!DOCTYPE html>
   <div id="tabs">
     <button class="tab-btn active" id="tab-theory" onclick="switchTab('theory')">Theory</button>
     <button class="tab-btn" id="tab-questions" onclick="switchTab('questions')">Questions</button>
+  </div>
+
+  <div id="progress-wrap">
+    <div id="progress-bar-outer"><div id="progress-bar-inner"></div></div>
+    <div id="progress-text"></div>
   </div>
 
   <div id="loading">Loading&hellip;</div>
@@ -533,9 +752,12 @@ async function loadChapter(index, tab) {{
     if (currentTab === 'questions') {{
       document.getElementById('content').innerHTML = renderQuestions(md);
       document.getElementById('content').classList.add('questions-mode');
+      document.getElementById('progress-wrap').classList.add('visible');
+      applyCardStates();
     }} else {{
       document.getElementById('content').innerHTML = marked.parse(md);
       document.getElementById('content').classList.remove('questions-mode');
+      document.getElementById('progress-wrap').classList.remove('visible');
     }}
   }} catch(e) {{
     document.getElementById('loading').classList.remove('visible');
@@ -563,56 +785,240 @@ async function loadChapter(index, tab) {{
   document.title = ch.title + ' — Interview Prep';
 }}
 
-// Render questions.md with click-to-reveal behaviour.
+let _cardSeq = 0;
+
+// Render questions.md as flip cards.
 // Each question block starts with a bold **Q[N]** line; everything after is the answer.
 function renderQuestions(md) {{
-  // Split on lines starting with ** (question markers) or blank separator lines
+  _cardSeq = 0;
   const rawHtml = marked.parse(md);
   const tmp = document.createElement('div');
   tmp.innerHTML = rawHtml;
 
-  // Find all <p> children that start with a bold question marker
-  const paras = Array.from(tmp.querySelectorAll('p'));
-  const blocks = [];
-  let current = null;
-
-  for (const p of paras) {{
-    const text = p.textContent.trim();
-    const isQuestion = /^\\*?\\*?Q\\d+[\\.\\)]/.test(text) || /^Q\\d+[\\.\\)]/.test(text);
-    if (isQuestion) {{
-      if (current) blocks.push(current);
-      current = {{ question: p, answers: [] }};
-    }} else if (current) {{
-      current.answers.push(p);
-    }} else {{
-      // Header content before first question
-      blocks.push({{ header: p }});
-    }}
-  }}
-  if (current) blocks.push(current);
-
-  // Also grab headings from the parsed HTML
   const allElems = Array.from(tmp.children);
-  const headerElems = allElems.filter(el => /^H[1-4]$/.test(el.tagName));
+  let headerHtml = '';
+  let cardsHtml = '';
+  let currentCard = null;
+  let cardCount = 0;
+  let inHeader = true;
 
-  let html = '';
-  // Re-parse with structure preserved using the raw markdown approach instead
-  // Simpler: wrap each question+answer group in a div
-  html = '<div id="q-header">' + headerElems.map(e => e.outerHTML).join('') + '</div>';
+  for (const el of allElems) {{
+    const tag = el.tagName;
+    const text = el.textContent.trim();
+    const isQ = tag === 'P' && /^Q\\d+[.)]/i.test(text);
 
-  for (const block of blocks) {{
-    if (block.header) {{
-      html += block.header.outerHTML;
+    if (isQ) {{
+      inHeader = false;
+      if (currentCard) cardsHtml += buildFlipCard(currentCard);
+      cardCount++;
+      currentCard = {{ questionHtml: el.outerHTML, answerParts: [] }};
+    }} else if (!inHeader && currentCard) {{
+      currentCard.answerParts.push(el.outerHTML);
     }} else {{
-      const answerHtml = block.answers.map(a => '<div class="answer">' + a.outerHTML + '</div>').join('');
-      html += `<div class="question-block" onclick="this.classList.toggle('revealed')">
-        ${{block.question.outerHTML}}
-        ${{answerHtml ? answerHtml : ''}}
-        ${{answerHtml ? '<div class="reveal-hint">Click to reveal</div>' : ''}}
-      </div>`;
+      headerHtml += el.outerHTML;
     }}
   }}
-  return html;
+  if (currentCard) cardsHtml += buildFlipCard(currentCard);
+
+  const controls = cardCount > 0
+    ? `<div id="q-controls">
+        <button class="btn" onclick="flipAllCards(false)">Reset All</button>
+        <button class="btn" onclick="flipAllCards(true)">Reveal All</button>
+        <span id="q-counter">0 / ${{cardCount}} revealed</span>
+       </div>`
+    : '';
+
+  return headerHtml + controls + cardsHtml;
+}}
+
+function buildFlipCard(card) {{
+  const answerHtml = card.answerParts.join('');
+  const hasAnswer = answerHtml.trim().length > 0;
+  const qMatch = card.questionHtml.match(/Q(\\d+)[.)]/i);
+  const cardId = qMatch ? 'Q' + qMatch[1] : 'card_' + (++_cardSeq);
+  return `<div class="flip-card" onclick="flipCard(this)" data-card-id="${{cardId}}">
+    <div class="flip-face flip-front">
+      <span class="face-badge"><span class="state-dot"></span>Question</span>
+      ${{card.questionHtml}}
+      <span class="flip-hint">click to flip &#8594;</span>
+    </div>
+    <div class="flip-face flip-back">
+      <span class="face-badge">Answer</span>
+      ${{hasAnswer ? answerHtml : '<p><em>No answer yet.</em></p>'}}
+      ${{hasAnswer ? `<div class="card-status-btns">
+        <button class="btn-status btn-known" onclick="event.stopPropagation();markCard(this,'known')">&#10003; Got it</button>
+        <button class="btn-status btn-again" onclick="event.stopPropagation();markCard(this,'review')">&#8634; Again</button>
+      </div>` : ''}}
+      <span class="flip-hint">&#8592; click to flip back</span>
+    </div>
+  </div>`;
+}}
+
+function flipCard(card) {{
+  if (card.classList.contains('animating')) return;
+  card.classList.add('animating');
+  card.style.transition = 'transform 0.12s ease-in';
+  card.style.transform = 'scaleX(0)';
+  setTimeout(() => {{
+    card.classList.toggle('flipped');
+    updateCounter();
+    card.style.transition = 'transform 0.12s ease-out';
+    card.style.transform = 'scaleX(1)';
+    setTimeout(() => {{
+      card.style.transform = '';
+      card.style.transition = '';
+      card.classList.remove('animating');
+    }}, 120);
+  }}, 120);
+}}
+
+function flipAllCards(reveal) {{
+  document.querySelectorAll('.flip-card').forEach(card => {{
+    if (reveal && !card.classList.contains('flipped')) card.classList.add('flipped');
+    if (!reveal && card.classList.contains('flipped')) card.classList.remove('flipped');
+  }});
+  updateCounter();
+}}
+
+function updateCounter() {{
+  const total = document.querySelectorAll('.flip-card').length;
+  const revealed = document.querySelectorAll('.flip-card.flipped').length;
+  const el = document.getElementById('q-counter');
+  if (el) el.textContent = revealed + ' / ' + total + ' revealed';
+}}
+
+// ── Profile management ──────────────────────────────────────────────────────
+let currentProfile = '';
+
+function initProfile() {{
+  currentProfile = localStorage.getItem('currentProfile') || '';
+  if (!currentProfile) {{
+    showProfileModal(true);
+  }} else {{
+    document.getElementById('profile-name-display').textContent = currentProfile;
+  }}
+}}
+
+function showProfileModal(force) {{
+  const modal = document.getElementById('profile-modal');
+  modal.classList.remove('hidden');
+  modal.dataset.force = force ? '1' : '';
+  document.getElementById('profile-input').value = '';
+  const profiles = getProfileNames();
+  const listEl = document.getElementById('profile-list');
+  const itemsEl = document.getElementById('profile-items');
+  if (profiles.length > 0) {{
+    listEl.style.display = 'block';
+    itemsEl.innerHTML = profiles.map(name => {{
+      const isActive = name === currentProfile;
+      const safe = name.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+      return `<div class="profile-item ${{isActive ? 'active' : ''}}" onclick="selectProfile(this.dataset.name)" data-name="${{safe}}">
+        <span>${{safe}}</span>
+        <button class="profile-delete" onclick="event.stopPropagation();deleteProfile(this.closest('.profile-item').dataset.name)" title="Delete">&#10005;</button>
+      </div>`;
+    }}).join('');
+  }} else {{
+    listEl.style.display = 'none';
+  }}
+  setTimeout(() => document.getElementById('profile-input').focus(), 50);
+}}
+
+function closeProfileModal() {{
+  const modal = document.getElementById('profile-modal');
+  if (!modal.dataset.force) modal.classList.add('hidden');
+}}
+
+function submitProfile() {{
+  const name = document.getElementById('profile-input').value.trim();
+  if (!name) return;
+  selectProfile(name);
+}}
+
+function selectProfile(name) {{
+  currentProfile = name;
+  localStorage.setItem('currentProfile', name);
+  const profiles = getProfileNames();
+  if (!profiles.includes(name)) {{
+    profiles.push(name);
+    localStorage.setItem('profileNames', JSON.stringify(profiles));
+  }}
+  document.getElementById('profile-name-display').textContent = name;
+  document.getElementById('profile-modal').classList.add('hidden');
+  document.getElementById('profile-modal').dataset.force = '';
+  if (currentTab === 'questions') applyCardStates();
+}}
+
+function deleteProfile(name) {{
+  localStorage.removeItem('progress_' + name);
+  const profiles = getProfileNames().filter(p => p !== name);
+  localStorage.setItem('profileNames', JSON.stringify(profiles));
+  if (name === currentProfile) {{
+    currentProfile = '';
+    localStorage.removeItem('currentProfile');
+    document.getElementById('profile-name-display').textContent = 'Profile';
+    showProfileModal(true);
+  }} else {{
+    showProfileModal(false);
+  }}
+}}
+
+function getProfileNames() {{
+  try {{ return JSON.parse(localStorage.getItem('profileNames') || '[]'); }}
+  catch {{ return []; }}
+}}
+
+// ── Progress tracking ─────────────────────────────────────────────────────
+function getProfileProgress() {{
+  if (!currentProfile) return {{}};
+  try {{ return JSON.parse(localStorage.getItem('progress_' + currentProfile) || '{{}}'); }}
+  catch {{ return {{}};  }}
+}}
+
+function saveCardProgress(cardId, status) {{
+  if (!currentProfile) return;
+  const slug = chapters[currentIndex].slug;
+  const data = getProfileProgress();
+  if (!data[slug]) data[slug] = {{}};
+  if (status) data[slug][cardId] = status;
+  else delete data[slug][cardId];
+  localStorage.setItem('progress_' + currentProfile, JSON.stringify(data));
+}}
+
+function applyCardStates() {{
+  const slug = chapters[currentIndex].slug;
+  const chapterData = (getProfileProgress()[slug]) || {{}};
+  document.querySelectorAll('.flip-card').forEach(card => {{
+    const status = chapterData[card.dataset.cardId] || '';
+    card.dataset.status = status;
+    card.classList.remove('state-known', 'state-review');
+    if (status) card.classList.add('state-' + status);
+  }});
+  updateProgressBar();
+  updateCounter();
+}}
+
+function markCard(btn, status) {{
+  const card = btn.closest('.flip-card');
+  const newStatus = card.dataset.status === status ? '' : status;
+  card.dataset.status = newStatus;
+  card.classList.remove('state-known', 'state-review');
+  if (newStatus) card.classList.add('state-' + newStatus);
+  saveCardProgress(card.dataset.cardId, newStatus);
+  updateProgressBar();
+}}
+
+function updateProgressBar() {{
+  const total = document.querySelectorAll('.flip-card').length;
+  const known = document.querySelectorAll('.flip-card.state-known').length;
+  const review = document.querySelectorAll('.flip-card.state-review').length;
+  const inner = document.getElementById('progress-bar-inner');
+  const text = document.getElementById('progress-text');
+  if (inner) inner.style.width = (total ? known / total * 100 : 0) + '%';
+  if (text) {{
+    let msg = known + ' / ' + total + ' mastered';
+    if (review > 0) msg += ' \u00b7 ' + review + ' to review';
+    text.textContent = msg;
+  }}
 }}
 
 function switchTab(tab) {{
@@ -663,6 +1069,7 @@ if (hash) {{
   if (idx >= 0) startIndex = idx;
   if (tabPart === 'q') startTab = 'questions';
 }}
+initProfile();
 loadChapter(startIndex, startTab);
 </script>
 </body>
