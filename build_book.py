@@ -36,6 +36,7 @@ CHAPTER_TITLES = {
     "07_flashbots_pbs":   "Layer 7: Flashbots & PBS — Bundles, Relays, MEV-Boost",
     "08_uniswap_v3":      "Layer 8: Uniswap V3 — Concentrated Liquidity, Ticks",
     "09_synthesis":       "Layer 9: Synthesis — MEV in V3, Sandwich Protection",
+    "10_blockchain_infrastructure": "Layer 10: Blockchain Backend Infrastructure",
 }
 
 chapters = []
